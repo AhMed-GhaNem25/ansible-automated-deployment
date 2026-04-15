@@ -1,38 +1,51 @@
 ---
-- name: install node and npm
+# Playbook: Install Node.js, npm, and deploy the Node.js application
+# Usage: sudo ansible-playbook -i hosts deploy-nodejs.yaml
+
+- name: Install Node.js and npm
   hosts: your-server-ip
   become: yes
   tasks:
-    - name: update apt repo and cache
-      apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
-    - name: Install npm and node on the server
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        force_apt_get: yes
+        cache_valid_time: 3600
+
+    - name: Install Node.js and npm
       apt:
         pkg:
           - nodejs
           - npm
 
-- name : deploy node app
+- name: Deploy Node.js application
   hosts: your-server-ip
+  become: yes
   vars_files:
     - "yourpath/Vars.yaml"
   tasks:
-    - name: copy the artifact to the and unpack
-      unarchive:
-        src: "yourpath/simple-nodejs-app/{{app_file}}.tgz"
-        dest: "{{dest_path}}"
 
-    - name: Install the dependencies
-      npm: 
-        path: "{{dest_path}}/package"
-    
-    - name: start the application
-      command: 
-        chdir: "{{dest_path}}/package/app/"
+    - name: Copy and unpack the application artifact
+      unarchive:
+        src: "yourpath/simple-nodejs-app/{{ app_file }}.tgz"
+        dest: "{{ dest_path }}"
+
+    - name: Install application dependencies via npm
+      npm:
+        path: "{{ dest_path }}/package"
+
+    - name: Start the application
+      command:
+        chdir: "{{ dest_path }}/package/app/"
         cmd: node server.js
       async: 45
       poll: 0
 
-    - name: make sure the app is running
+    - name: Verify the application is running
       shell: ps aux | grep node
       register: app_status
-    - debug: msg=" App Status tracker :{{ app_status.stdout}}"
+
+    - name: Print application status
+      debug:
+        msg: "App Status: {{ app_status.stdout }}"
